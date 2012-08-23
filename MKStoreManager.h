@@ -37,6 +37,7 @@
 #import "MKStoreObserver.h"
 #import "MKStoreKitConfigs.h"
 #import "JSONKit.h"
+#import "SSStorePurchaseHistory.h"
 
 #define kReceiptStringKey @"MK_STOREKIT_RECEIPTS_STRING"
 
@@ -80,6 +81,9 @@
 +(void) setObject:(id) object forKey:(NSString*) key;
 +(NSNumber*) numberForKey:(NSString*) key;
 
--(void) restoreCompleted;
+-(void) restoreCompleted:(NSArray *)transactions;
 -(void) restoreFailedWithError:(NSError*) error;
+
+-(NSDate *)getPurchaseDateOfProduct:(NSString *)productID;
+- (void) completeTransaction: (SKPaymentTransaction *)transaction;
 @end

@@ -36,7 +36,8 @@
 #import "SFHFKeychainUtils.h"
 #import "MKSKSubscriptionProduct.h"
 #import "MKSKProduct.h"
-#import "NSData+Base64.h"
+#import "Externals/NSData+Base64.h"
+
 #if ! __has_feature(objc_arc)
 #error MKStoreKit is ARC only. Either turn on ARC for the project or use -fobjc-arc flag
 #endif
@@ -56,7 +57,7 @@
 @property (nonatomic, assign, getter=isProductsAvailable) BOOL isProductsAvailable;
 
 @property (nonatomic, strong) SKProductsRequest *productsRequest;
-
+@property (nonatomic, strong) SSStorePurchaseHistory * purchaseHistory;
 - (void) requestProductData;
 - (void) startVerifyingSubscriptionReceipts;
 -(void) rememberPurchaseOfProduct:(NSString*) productIdentifier withReceipt:(NSData*) receiptData;
@@ -67,6 +68,7 @@
 
 @synthesize purchasableObjects = _purchasableObjects;
 @synthesize storeObserver = _storeObserver;
+@synthesize purchaseHistory = _purchaseHistory;
 @synthesize subscriptionProducts;
 
 @synthesize isProductsAvailable;
@@ -196,7 +198,12 @@ static MKStoreManager* _sharedStoreManager;
 		dispatch_once(&oncePredicate, ^{      
 			_sharedStoreManager = [[self alloc] init];            
       _sharedStoreManager.purchasableObjects = [[NSMutableArray alloc] init];
-      [_sharedStoreManager requestProductData];						
+            _sharedStoreManager.purchaseHistory = [NSKeyedUnarchiver unarchiveObjectWithFile:@"PurchaseHistory"];
+            if(_sharedStoreManager.purchaseHistory == nil)
+            {
+                _sharedStoreManager.purchaseHistory = [[SSStorePurchaseHistory alloc] init];
+            }
+      [_sharedStoreManager requestProductData];
       _sharedStoreManager.storeObserver = [[MKStoreObserver alloc] init];
       [[SKPaymentQueue defaultQueue] addTransactionObserver:_sharedStoreManager.storeObserver];            
       [_sharedStoreManager startVerifyingSubscriptionReceipts];    });
@@ -230,8 +237,12 @@ static MKStoreManager* _sharedStoreManager;
 	[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
 }
 
--(void) restoreCompleted
+-(void) restoreCompleted:(NSArray *)transactions
 {
+    for (SKPaymentTransaction * transaction in transactions) {
+        [self completeTransaction:transaction];
+    }
+    
   if(self.onRestoreCompleted)
     self.onRestoreCompleted();
   self.onRestoreCompleted = nil;
@@ -670,6 +681,16 @@ static MKStoreManager* _sharedStoreManager;
   
   if(self.onTransactionCancelled)
     self.onTransactionCancelled();
+}
+
+-(NSDate *)getPurchaseDateOfProduct:(NSString *)productID
+{
+    return [_purchaseHistory getPurchaseDateForProduct:productID];
+}
+
+- (void) completeTransaction: (SKPaymentTransaction *)transaction
+{
+    [_purchaseHistory saveProductID:transaction.payment.productIdentifier withPurchaseDate:transaction.originalTransaction.transactionDate];
 }
 
 @end

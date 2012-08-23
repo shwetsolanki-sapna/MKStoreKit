@@ -69,7 +69,7 @@
 
 - (void)paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue 
 {
-  [[MKStoreManager sharedManager] restoreCompleted];
+    [[MKStoreManager sharedManager] restoreCompleted:queue.transactions];
 }
 
 - (void) failedTransaction: (SKPaymentTransaction *)transaction
@@ -87,7 +87,8 @@
   [[MKStoreManager sharedManager] provideContent:transaction.payment.productIdentifier 
                                       forReceipt:nil];	
 #endif
-  
+    [[MKStoreManager sharedManager] completeTransaction:transaction];
+    
   [[SKPaymentQueue defaultQueue] finishTransaction: transaction];	
 }
 
